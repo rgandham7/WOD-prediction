@@ -2,11 +2,38 @@ import pandas as pd
 import numpy as np
 
 
-def fill_missing_values(df, method = 'knn', **kwargs):
+def fill_missing_values(df, method = 'knn', neighbors, identifier_columns, data_columns, **kwargs):
     # TODO: fill missing values
     if method == 'zero':
         df.fillna(0, inplace = True)
 
+    if method == "knn":
+        if (not isinstance(neighbors, int)) or neighbors <= 0 or neighbors > 20:
+            raise Exception("Invalid neighbor argument")
+
+        if not isinstance(identifier_columns, list) or len(identifier_columns) == 0:
+            raise Exception("Invalid identifier_columns argument")
+
+        if not isinstance(data_columns, list) or len(identifier_columns) == 0:
+            raise Exception("Invalid data_columns argument")
+
+        try:
+            df_identifiers = df[identifier_columns]
+            df_modify = df[data_columns]
+        except KeyError:
+            print(f"A column header in identifier_columns or data_columns is not in {df}.")
+        else:
+            df_modify = df_modify.fillna(value=np.nan)
+            df_modify = df_modify[:].values
+    
+            imputer = KNNImputer(n_neighbors=neighbors)
+    
+            df_KNN = pd.DataFrame(imputer.fit_transform(df_modify), columns=data_columns)
+    
+            df_KNN = pd.concat([df_identifiers, df_KNN], axis=1)
+    
+            return df_KNN
+        
     return df
 
 def remove_outliers(df, method = 'iqr', score_headers: list = None,  **kwargs):
